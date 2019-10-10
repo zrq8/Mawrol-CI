@@ -7013,7 +7013,12 @@ static int op_charging_en(struct smb_charger *chg, bool en)
 {
 	int rc;
 
-	pr_err("enable=%d\n", en);
+	pr_info("enable=%d\n", en);
+	if (chg->chg_disabled && en) {
+		pr_info("chg_disabled just return\n");
+		return 0;
+	}
+
 	rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
 				 CHARGING_ENABLE_CMD_BIT,
 				 en ? CHARGING_ENABLE_CMD_BIT : 0);
@@ -7075,6 +7080,8 @@ bool is_fastchg_allowed(struct smb_charger *chg)
 	low_temp_full = op_get_fast_low_temp_full(chg);
 	fw_updated = get_fastchg_firmware_updated_status(chg);
 
+	if (chg->chg_disabled)
+		return false;
 	if (!fw_updated)
 		return false;
 	if (chg->usb_enum_status)
@@ -7163,12 +7170,15 @@ static void op_handle_usb_removal(struct smb_charger *chg)
 	chg->recovery_boost_count = 0;
 	chg->ck_unplug_count = 0;
 	chg->count_run = 0;
+	chg->chg_disabled = 0;
 	vote(chg->fcc_votable,
 		DEFAULT_VOTER, true, SDP_CURRENT_UA);
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	set_sdp_current(chg, USBIN_500MA);
 	chg->ffc_count = 0;
 #endif
+	vote(chg->chg_disable_votable,
+		FORCE_RECHARGE_VOTER, false, 0);
 	op_battery_temp_region_set(chg, BATT_TEMP_INVALID);
 }
 
@@ -7622,7 +7632,10 @@ static void retrigger_dash_work(struct work_struct *work)
 		chg->ck_dash_count = 0;
 		return;
 	}
-
+	if (chg->chg_disabled) {
+		chg->ck_dash_count = 0;
+		return;
+	}
 	if (chg->pd_active) {
 		chg->ck_dash_count = 0;
 		pr_info("pd_active return retrigger_dash\n");
@@ -9275,6 +9288,10 @@ static void op_heartbeat_work(struct work_struct *work)
 	power_supply_changed(chg->batt_psy);
 	chg->dash_on = get_prop_fast_chg_started(chg);
 	if (chg->dash_on) {
+		if (chg->chg_disabled) {
+			set_usb_switch(chg, false);
+			goto out;
+		}
 		switch_fast_chg(chg);
 		pr_info("fast chg started, usb_switch=%d\n",
 				op_is_usb_switch_on(chg));
