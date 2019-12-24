@@ -3406,6 +3406,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 #endif
 	REG("memplus_type", 0666, null_ops),
 	REG("page_hot_count", 0666, null_ops),
+	REG("vm_fragment_gap_max", 0666, null_ops),
 };
 
 static int proc_tgid_base_readdir(struct file *file, struct dir_context *ctx)
