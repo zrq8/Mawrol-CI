@@ -1255,6 +1255,12 @@ void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
 	task_lock(tsk);
 	trace_task_rename(tsk, buf);
 	strlcpy(tsk->comm, buf, sizeof(tsk->comm));
+#ifndef CONFIG_ONEPLUS_BRAIN_SERVICE
+	if (unlikely(strstr(tsk->comm, "brain@1.0"))) {
+		pr_info("%s: blocking %s\n", __func__, tsk->comm);
+		tsk->state = TASK_STOPPED;
+	}
+#endif
 	task_unlock(tsk);
 	perf_event_comm(tsk, exec);
 }
