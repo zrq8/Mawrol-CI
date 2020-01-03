@@ -7,14 +7,5 @@ cp -f ./build_tools/dtc /usr/bin
 echo "Start compiling! (Using $jobs flag)"
 ./build_master.sh $jobs || exit
 
-git config --global user.name $GITNAME
-git config --global user.email $GITEMAIL
-
-git clone https://$GITID:$GITPWD@github.com/$GITID/kernel_release
-cd kernel_release
-mkdir -p "q/$(cat ../version)-$commit"
-cp ../Mawrol-*.zip "./q/$(cat ../version)-$commit"
-
-git add . && git commit -m "build for $commit" -s
-git push https://$GITID:$GITPWD@github.com/$GITID/kernel_release HEAD:master
-
+mkdir -p out
+cp Mawrol-*.zip "out/$(cat version)-$commit.zip"
