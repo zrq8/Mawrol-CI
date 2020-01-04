@@ -39,7 +39,7 @@ steps:
     when:
       event: push
 
-  - name: publish
+  - name: publish_release
     image: plugins/github-release
     settings:
       api_key:
