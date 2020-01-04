@@ -17,6 +17,7 @@ steps:
       - bash build_ci.sh
 
   - name: publish
+    image: ubuntu:19.10
     environment:
       GITID:
         from_secret: GITID
