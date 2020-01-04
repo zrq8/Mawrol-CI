@@ -15,6 +15,30 @@ steps:
     commands:
       - apt-get update && apt-get install -y cpio liblz4-dev zipalign p7zip fakeroot liblz4-tool liblz4-1 gcc make bc curl git zip zstd flex
       - bash build_ci.sh
+
+  - name: publish
+    environment:
+      GITID:
+        from_secret: GITID
+      GITPWD:
+        from_secret: GITPWD
+      GITNAME:
+        from_secret: GITNAME
+      GITEMAIL:
+        from_secret: GITEMAIL
+      REPO: kernel_release
+    commands:
+      - git config --global user.name $GITNAME
+      - git config --global user.email $GITEMAIL
+      - git clone https://$GITID:$GITPWD@github.com/$GITID/$REPO
+      - cd $REPO
+      - mkdir -p "q/$(cat ../version)-$commit"
+      - cp ../Mawrol-*.zip "./q/$(cat ../version)-$commit"
+      - git add . && git commit -m "build for $commit" -s
+      - git push https://$GITID:$GITPWD@github.com/$GITID/$REPO HEAD:master
+    when:
+      event: push
+
   - name: publish
     image: plugins/github-release
     settings:
